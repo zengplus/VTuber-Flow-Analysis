@@ -31,24 +31,26 @@ Python、DuckDB、Streamlit、Plotly、Scikit-learn
 ## 安装指南
 
 ### 前置要求
-- Python 3.8+
+- Python 3.10+
 - 1 GB 以上内存
 
 ### 安装步骤
 
 1. **克隆仓库**：
 ```bash
-git clone https://github.com/zengplus/VTuber-Flow-Analytics.git
-cd VTuber-Flow-Analytics
-```
-
-2. **环境隔离(可选)**：
-
-```bash
-
+git clone https://github.com/zengplus/VTuber-Flow-Analysis.git
+cd VTuber-Flow-Analysis
 ```
 
 2. **安装依赖**：
+
+**方式 A：使用 uv（推荐，开发环境）**
+```bash
+uv lock
+uv sync
+```
+
+**方式 B：使用 pip（生产环境 / 传统流程）**
 ```bash
 pip install -r requirements.txt
 ```
@@ -99,7 +101,7 @@ streamlit run app.py
 ## 项目结构
 
 ```
-VTuber-Flow-Analytics/
+VTuber-Flow-Analysis/
 ├── __pycache__/                # 运行时生成：Python缓存目录
 │   └── ...
 ├── cache/                      # 运行时生成：数据缓存目录
@@ -107,12 +109,15 @@ VTuber-Flow-Analytics/
 ├── data/                       # 数据存储目录
 │   └── fans_events.parquet     # 原始数据文件
 ├── images/                     # 图片资源目录
-│   └── home.png                # 主页图片
+│   └── demo.gif                # 主页演示动画
 ├── analysis.sql                # 数据分析SQL脚本
 ├── app.py                      # 主应用程序
 ├── id2name.py                  # ID与名称映射
+├── pyproject.toml              # 项目元数据
 ├── README.md                   # 项目说明文档
 ├── mydb.duckdb                 # 运行时生成：DuckDB数据库
+├── requirements.txt            # 顶层依赖
+├── uv.lock                     # uv 锁定文件
 └── LICENSE                     # 项目许可证文件
 ```
 
