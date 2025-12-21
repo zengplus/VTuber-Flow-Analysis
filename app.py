@@ -114,7 +114,7 @@ df_scale = conn.execute("""
 fig_scale = px.line(df_scale, x="month", y=["mau", "fixed_mau", "flowing_mau", "ylg_mau"],
                     labels={"value": "人数", "month": "月份", "variable": "分层"},
                     title="MAU（自然月活跃）& 固定/流动/流浪观众")
-st.plotly_chart(fig_scale, use_container_width=True)
+st.plotly_chart(fig_scale, width="stretch")
 
 # 1.1 解读
 latest = df_scale.tail(1).iloc[0]
@@ -162,7 +162,7 @@ else:
                         y=["mau", "fixed_mau", "flowing_mau", "ylg_mau"],
                         labels={"value": "人数", "month": "月份", "variable": "分层"},
                         title=f"{sel_liver_name} 的 MAU 分层趋势")
-    st.plotly_chart(fig_liver, use_container_width=True)
+    st.plotly_chart(fig_liver, width="stretch")
 
  # >>> 1.2 运营解读
 if not df_liver_scale.empty:
@@ -209,7 +209,7 @@ pen_df["主播名"] = pen_df["liver"].map(id2name).fillna("YLG")
 fig_pen = px.area(pen_df, x="month", y="penetration", color="主播名",
                   groupnorm="fraction",   # 自动堆叠 100%
                   title="主播 MAU 占行业比例（堆叠面积）")
-st.plotly_chart(fig_pen, use_container_width=True)
+st.plotly_chart(fig_pen, width="stretch")
 
 # >>> 1.3 运营解读
 last_month = pen_df["month"].max()
@@ -300,7 +300,7 @@ else:
         fig.update_layout(title=f"{sel} 的 S 曲线（R²={R2:.3f}）",
                           xaxis_title="Month Seq (t)",
                           yaxis_title="MAU")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # =====  数值有效性检查  =====
         def valid_check(sub, params):
@@ -346,13 +346,6 @@ else:
         csv_params = fit_df.to_csv(index=False)
         st.download_button("下载全主播拟合参数", csv_params, "scurve_params.csv", "text/csv")
 
-# >>> 1.4 运营解读
-if ok and t0 > 0:
-    remain = max(0, K - y[-1])
-    st.info(f"距离天花板还有 ≈{remain:,.0f} 空间；"
-            f"当前月增速 ≈{r*100:.1f}%/月，建议在「加速-峰值」阶段加大资源投放，"
-            "用 2-3 个月窗口把潜在渗透一次吃尽。")
-
 # ====================== 1.5 主播生命周期五阶段  ======================
 st.header("1.5 主播生命周期五阶段")
 
@@ -381,7 +374,7 @@ else:
                       "衰退期": "#8c564b"
                   })
     fig.update_layout(xaxis_title="Month Seq (t)", yaxis_title="MAU")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # 解读
     curr = sub.iloc[-1]["stage"]
@@ -433,20 +426,27 @@ def _show_assoc(top_df):
                  title=f"Users who like {'/'.join(top_df.loc[top_df['liver']!=-999, '主播名'])} also like",
                  color_discrete_sequence=px.colors.sequential.YlGnBu_r)
     fig.update_traces(textposition="inside", textinfo="percent+label")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 with st.form("assoc_form"):
     target_names = st.multiselect("Target streamers", names, default=DEFAULT_TARGETS, key="a1")
     target_ids   = tuple([k for k, v in id2name.items() if v in target_names])
     exclude      = st.checkbox("Exclude YLG (-3)", value=DEFAULT_EXCLUDE)
     top_n        = st.slider("Top N in pie", 3, 15, DEFAULT_TOP_N)
-    run          = st.form_submit_button(T["gen"], use_container_width=True)
+    run          = st.form_submit_button(T["gen"], width="stretch")
 
 if st.button("🗑 清兴趣关联缓存"):
     _compute_assoc.clear()
     st.success("缓存已清空，请重新生成！")
 
-if "assoc_auto" not in st.session_state:
+top_df = None
+if run:
+    top_df = _compute_assoc(target_ids, top_n, exclude)
+    if top_df is None:
+        st.warning("No data")
+    else:
+        _show_assoc(top_df)
+elif "assoc_auto" not in st.session_state:
     top_df = _compute_assoc(tuple([k for k, v in id2name.items() if v in DEFAULT_TARGETS]),
                             DEFAULT_TOP_N, DEFAULT_EXCLUDE)
     if top_df is not None:
@@ -465,13 +465,6 @@ if top_df is not None and len(top_df) > 1:
     else:
         st.info(f"观众粘性较高，跨主播流动性仅{cross_rate:.1%}，最相关的三位主播是：{top_names}。"
                 "适合打造「深度私域」生态，通过会员体系和专属互动玩法提升用户忠诚度和ARPPU。")
-
-if run:
-    top_df = _compute_assoc(target_ids, top_n, exclude)
-    if top_df is None:
-        st.warning("No data")
-    else:
-        _show_assoc(top_df)
 
 
 
@@ -493,7 +486,7 @@ df_hot = conn.execute(f"""
 df_hot = df_hot.melt(id_vars="day", value_vars=["weak","strong"], var_name="type", value_name="cnt")
 fig_hot = px.bar(df_hot, x="day", y="cnt", color="type", barmode="stack",
                  title=f"每日事件量（{'全体' if not sel_hot_names else '/'.join(sel_hot_names)}）")
-st.plotly_chart(fig_hot, use_container_width=True)
+st.plotly_chart(fig_hot, width="stretch")
 
 # >>> 2.2 运营解读
 weak_share = df_hot[df_hot["type"] == "weak"]["cnt"].sum() / df_hot["cnt"].sum()
@@ -525,6 +518,7 @@ st.header("3.1 月度趋势")
 
 sel_trend = st.multiselect(T["select"], names, default=["嘉然"], key="trend_sel")
 sel_ids_t = [k for k, v in id2name.items() if v in sel_trend]
+df_trend = None
 if sel_ids_t:
     conn = get_conn()
     df_trend = conn.execute(f"""
@@ -537,7 +531,7 @@ if sel_ids_t:
     st.line_chart(df_trend.set_index("month")[["new_users", "lost_users"]])
 
 # >>> 3.1 运营解读
-if not df_trend.empty:
+if df_trend is not None and not df_trend.empty:
     net = df_trend["new_users"].sum() - df_trend["lost_users"].sum()
     if net > 0:
         st.info("净流入为正，说明主播矩阵整体吸粉；可把增量资源投向吸粉效率最高的月份/主播，放大正循环。")
@@ -550,6 +544,8 @@ st.header("3.2 用户流动矩阵")
 
 sel_names = st.multiselect(T["select"], names, default=["嘉然"], key="matrix_sel")
 sel_ids   = [k for k, v in id2name.items() if v in sel_names]
+src_tbl = None
+tgt_tbl = None
 if sel_ids:
     cache_key = f"{'-'.join(map(str, sel_ids))}_{datetime.now():%Y-%m}"
     src_cache = CACHE_DIR / f"src_{cache_key}.parquet"
@@ -593,17 +589,17 @@ if sel_ids:
     st.dataframe(src_tbl.style.background_gradient(cmap="YlGnBu"))
     st.subheader(T["src_heat"])
     st.plotly_chart(px.imshow(src_tbl, labels=dict(x="主播", y="月份", color="人数"),
-                                color_continuous_scale="YlGnBu", aspect="auto"), use_container_width=True)
+                                color_continuous_scale="YlGnBu", aspect="auto"), width="stretch")
 
     st.subheader(T["tgt_table"])
     st.dataframe(tgt_tbl.style.background_gradient(cmap="YlGnBu"))
     st.subheader(T["tgt_heat"])
     st.plotly_chart(px.imshow(tgt_tbl, labels=dict(x="主播", y="月份", color="人数"),
-                                color_continuous_scale="YlGnBu", aspect="auto"), use_container_width=True)
+                                color_continuous_scale="YlGnBu", aspect="auto"), width="stretch")
 
 
 # >>> 3.2 运营解读
-if src_tbl.shape[1] > 1:
+if src_tbl is not None and src_tbl.shape[1] > 1:
     max_src = src_tbl.iloc[-1].idxmax()
     max_tgt = tgt_tbl.iloc[-1].idxmax()
     st.info(f"最近月份最大来源={max_src}，最大去向={max_tgt}；"
@@ -657,7 +653,7 @@ fig_f = go.Figure(go.Funnel(
            funnel["revenue"],   # 统一用 revenue
            funnel["refer"]],
         textinfo="value+percent initial"))
-st.plotly_chart(fig_f, use_container_width=True)
+st.plotly_chart(fig_f, width="stretch")
 
 
 # >>> 3.3 运营解读
@@ -702,7 +698,7 @@ if len(funnel_df) >= 3:
         x=funnel_df["users"],
         textinfo="value+percent previous"
     ))
-    st.plotly_chart(fig_funnel, use_container_width=True)
+    st.plotly_chart(fig_funnel, width="stretch")
     new_, fix2 = funnel_df.iloc[0]["users"], funnel_df.iloc[2]["users"]
     st.info(f"{funnel_month} 新增 {new_:,.0f}，两个月后沉淀固定 {fix2:,.0f}，转化率 {fix2/new_:.1%}。")
 else:
@@ -722,21 +718,22 @@ churn_df = conn.execute(f"""
     ORDER BY month
 """).fetchdf()
 
+r = None
 if churn_df.empty:
     st.warning("所选主播无流动层数据")
 else:
     fig_churn = px.line(churn_df, x="month", y="churn_rate",
                         title=f"流动层净流失率（{'全体' if not sel_churn_names else '/'.join(sel_churn_names)}）")
-    st.plotly_chart(fig_churn, use_container_width=True)
+    st.plotly_chart(fig_churn, width="stretch")
     latest = churn_df.tail(1).iloc[0]
     m, r = latest["month"], latest["churn_rate"]
     st.info(f"{m:%Y-%m} 净流失率 {r:.1%}，连续收窄中，掉血趋缓。" if r < 0 else f"{m:%Y-%m} 净流失率 {r:.1%}，需回流运营。")
 
 
 # >>> 3.5 运营解读
-if abs(r) < 0.03:
+if r is not None and abs(r) < 0.03:
     st.info("净流失率趋近于 0，流动层基本平衡；此时可尝试「付费转化」或「二创激励」，把平衡态推向增量态。")
-else:
+elif r is not None:
     st.info("净流失率绝对值仍高，优先做「流失预警」+「召回触达」，避免失血过快消耗基本盘。")
 
 # ====================== 4. 忠诚维度 ======================
@@ -753,7 +750,7 @@ df_cohort = conn.execute("""
 df_cohort["留存率"] = df_cohort["retained"] / df_cohort["acquired"]
 fig_ret = px.line(df_cohort, x="month_age", y="留存率", color="cohort_month",
                   markers=True, title="固定观众 Cohort 留存（30-60-90 日）")
-st.plotly_chart(fig_ret, use_container_width=True)
+st.plotly_chart(fig_ret, width="stretch")
 
 # >>> 4.1 运营解读
 avg_ret = df_cohort[df_cohort["month_age"] == 1]["留存率"].mean()
@@ -823,7 +820,7 @@ def _compute_cluster(_ids: tuple, max_u: int, k: int, exclude: bool):
 def _show_cluster(plot_df, labels, matrix):
     fig = px.scatter(plot_df, x="x", y="y", color="cluster",
                      title=f"{len(matrix)} users × {len(plot_df['cluster'].unique())} clusters")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.subheader("Top5 streamers per cluster")
     for c in sorted(plot_df["cluster"].unique()):
         idx  = labels == int(c)
@@ -837,24 +834,24 @@ with st.form("cluster_form"):
     max_u     = st.slider("Max users", 100, int(total_u), min(DEFAULT_MAX_U, int(total_u)), 100)
     k         = st.slider("Cluster count", 2, 10, DEFAULT_K)
     exclude   = st.checkbox("Exclude YLG", value=DEFAULT_EXCLUDE)
-    run       = st.form_submit_button(T["gen"], use_container_width=True)
+    run       = st.form_submit_button(T["gen"], width="stretch")
 
 if st.button("🗑 清聚类缓存"):
     _compute_cluster.clear()
     st.success("缓存已清空，请重新生成！")
 
-if "cluster_auto" not in st.session_state:
-    plot_df, labels, matrix = _compute_cluster(tuple(DEFAULT_SEL), DEFAULT_MAX_U, DEFAULT_K, DEFAULT_EXCLUDE)
-    if plot_df is not None:
-        _show_cluster(plot_df, labels, matrix)
-    st.session_state.cluster_auto = True
-
+plot_df, labels, matrix = None, None, None
 if run:
     plot_df, labels, matrix = _compute_cluster(sel_ids, max_u, k, exclude)
     if plot_df is None:
         st.warning("数据过少或无数据")
     else:
         _show_cluster(plot_df, labels, matrix)
+elif "cluster_auto" not in st.session_state:
+    plot_df, labels, matrix = _compute_cluster(tuple(DEFAULT_SEL), DEFAULT_MAX_U, DEFAULT_K, DEFAULT_EXCLUDE)
+    if plot_df is not None:
+        _show_cluster(plot_df, labels, matrix)
+    st.session_state.cluster_auto = True
 
 # >>> 5.2 运营解读
 if labels is not None:
@@ -881,7 +878,7 @@ if df_contrib.empty:
 else:
     fig_contrib = px.area(df_contrib, x="day", y="evt_ratio", color="rfm_tag",
                           title=f"每日互动量中各 RFM 层占比（{'全体' if not sel_rc_names else '/'.join(sel_rc_names)}）")
-    st.plotly_chart(fig_contrib, use_container_width=True)
+    st.plotly_chart(fig_contrib, width="stretch")
 
 
 # >>> 5.3 运营解读
@@ -915,5 +912,3 @@ if st.button(T["start"], key="update_btn"):
             st.success(f"✅ Added {len(new)} rows")
         else:
             st.info("No new rows")
-
-
