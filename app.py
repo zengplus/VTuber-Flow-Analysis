@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# streamlit run app.py
+# uv run streamlit run app.py
 import streamlit as st
 import pandas as pd
 import duckdb, plotly.express as px, plotly.graph_objects as go
@@ -258,7 +258,8 @@ def fit_logistic(df):
             K, r, t0 = popt
             # 简单 R²
             y_pred = logistic(t, *popt)
-            r2 = 1 - np.sum((y - y_pred) ** 2) / np.sum((y - y.mean()) ** 2)
+            denom = np.sum((y - y.mean()) ** 2)
+            r2 = 1 - np.sum((y - y_pred) ** 2) / denom if denom else 0
             res.append({"liver": liver, "K": K, "r": r, "t0": t0, "R2": r2})
         except RuntimeError:
             continue
@@ -455,7 +456,8 @@ elif "assoc_auto" not in st.session_state:
 
 # >>> 2.1 运营解读
 if top_df is not None and len(top_df) > 1:
-    cross_rate = top_df[top_df["liver"] != -999]["cnt"].sum() / top_df["cnt"].sum()
+    denom = top_df["cnt"].sum()
+    cross_rate = top_df[top_df["liver"] != -999]["cnt"].sum() / denom if denom else 0
     top_related = top_df[top_df["liver"] != -999].nlargest(3, "cnt")
     top_names = "、".join([f"{row['主播名']}({row['cnt']}人)" for _, row in top_related.iterrows()])
     
@@ -489,12 +491,14 @@ fig_hot = px.bar(df_hot, x="day", y="cnt", color="type", barmode="stack",
 st.plotly_chart(fig_hot, width="stretch")
 
 # >>> 2.2 运营解读
-weak_share = df_hot[df_hot["type"] == "weak"]["cnt"].sum() / df_hot["cnt"].sum()
+denom = df_hot["cnt"].sum()
+weak_share = df_hot[df_hot["type"] == "weak"]["cnt"].sum() / denom if denom else 0
 strong_share = 1 - weak_share
 
 # 获取最近7天数据对比
 recent_7d = df_hot[df_hot["day"] > df_hot["day"].max() - pd.Timedelta(days=7)]
-weak_recent = recent_7d[recent_7d["type"] == "weak"]["cnt"].sum() / recent_7d["cnt"].sum() if not recent_7d.empty else 0
+denom = recent_7d["cnt"].sum()
+weak_recent = recent_7d[recent_7d["type"] == "weak"]["cnt"].sum() / denom if denom else 0
 
 trend = "上升" if weak_recent > weak_share else "下降"
 
@@ -783,7 +787,9 @@ with col2:
 
 # >>> 5.1 运营解读
 high_val = rfm_df[rfm_df["rfm_tag"] == "高价值忠诚"]["cnt"].sum()
-if high_val / rfm_df["cnt"].sum() < 0.1:
+denom = rfm_df["cnt"].sum()
+high_val_ratio = high_val / denom if denom else 0
+if high_val_ratio < 0.1:
     st.info("高价值忠诚人群不足 10%，说明付费或深度互动转化弱；"
             "可先做「小金额打赏激励」+「荣誉榜单」测试，提高 ARPPU。")
 else:

@@ -44,13 +44,12 @@ cd VTuber-Flow-Analysis
 
 2. **安装依赖**：
 
-**方式 A：使用 uv（推荐，开发环境）**
+**方式 A：使用 uv **
 ```bash
-uv lock
 uv sync
 ```
 
-**方式 B：使用 pip（生产环境 / 传统流程）**
+**方式 B：使用 pip **
 ```bash
 pip install -r requirements.txt
 ```
