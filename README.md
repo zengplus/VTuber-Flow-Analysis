@@ -66,6 +66,11 @@ duckdb mydb.duckdb < analysis.sql
 streamlit run app.py
 ```
 
+用'uv'运行应用：
+```bash
+uv run streamlit run app.py
+```
+
 浏览器自动打开 `http://localhost:8501`
 
 ### 界面操作指南
